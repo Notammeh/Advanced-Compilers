@@ -42,6 +42,21 @@ class TestCFG(unittest.TestCase):
         cfg = generate_cfg(bril_program)
         self.assertEqual(cfg, {"entry": ["exit"], "exit": []})
 
+    def test_label_then_ret(self):
+        bril_program = {
+            "functions": [
+                {
+                    "name": "main",
+                    "instrs": [
+                        {"label": "entry"},
+                        {"op": "ret"}
+                    ]
+                }
+            ]
+        }
+        cfg = generate_cfg(bril_program)
+        self.assertEqual(cfg, {"entry": []})
+
     def test_branch(self):
         bril_program = {
             "functions": [

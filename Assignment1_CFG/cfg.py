@@ -25,13 +25,16 @@ def form_blocks(body):
 
             #check terminator
             if instr['op'] in TERMINATORS:
-                yield cur_block
+                if cur_block:
+                    yield cur_block
                 cur_block = []
         else: # A label
-            yield cur_block
+            if cur_block:
+                yield cur_block
 
             cur_block = [instr]
-    yield cur_block
+    if cur_block:
+        yield cur_block
 
 def block_map(blocks):
     out = {}
