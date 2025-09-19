@@ -1,5 +1,6 @@
 import json
 import sys
+from collections import deque
 
 TERMINATORS = ("jmp", "br", "ret")
 
@@ -25,33 +26,7 @@ def form_blocks(body):
     """
     cur_block = []
     for instr in body:
-        if "op" in instr:  # actual instruction
-            cur_block.append(instr)
-            # End the current block at a terminator
-            if instr["op"] in TERMINATORS:
-                yield cur_block
-                cur_block = []
-        else:
-            # instr is a label. End the current block if it has any contents.
-            if cur_block:
-                yield cur_block
-            # start a new block beginning with this label
-            cur_block = [instr]
-    # yield the final block if it’s non-empty
-    if cur_block:
-        yield cur_block
-
-def block_map(blocks):
-    """Map block names to their instruction lists.
-
-    Anonymous blocks get names like b0, b1, etc. If a block
-    starts with a label, the label becomes the block name and
-    is removed from the block body.
-    """
-    out = {}
-    for block in blocks:
-        if "label" in block[0]:
-            name = block[0]["label"]
+@@ -55,37 +56,139 @@ def block_map(blocks):
             block = block[1:]
         else:
             name = f"b{len(out)}"
@@ -76,6 +51,108 @@ def get_cfg(name2block):
             succ = [names[i + 1]] if i + 1 < len(names) else []
         out[name] = succ
     return out
+
+def get_path_lengths(cfg, entry):
+    """Compute shortest path lengths (in edges) from *entry* to reachable nodes."""
+    if entry is None:
+        return {}
+
+    distances = {entry: 0}
+    queue = deque([entry])
+
+    while queue:
+        node = queue.popleft()
+        for succ in cfg.get(node, []):
+            if succ not in distances:
+                distances[succ] = distances[node] + 1
+                queue.append(succ)
+
+    return distances
+
+def reverse_postorder(cfg, entry):
+    """Return the reverse postorder of nodes reachable from *entry*."""
+    if entry is None:
+        return []
+
+    visited = set()
+    postorder = []
+
+    def dfs(node):
+        visited.add(node)
+        for succ in cfg.get(node, []):
+            if succ not in visited:
+                dfs(succ)
+        postorder.append(node)
+
+    dfs(entry)
+    return list(reversed(postorder))
+
+def find_back_edges(cfg, entry):
+    """Identify back edges using a DFS rooted at *entry*."""
+    if entry is None:
+        return []
+
+    back_edges = []
+    color = {}
+
+    def dfs(node):
+        color[node] = "gray"
+        for succ in cfg.get(node, []):
+            state = color.get(succ)
+            if state is None:
+                dfs(succ)
+            elif state == "gray":
+                back_edges.append((node, succ))
+        color[node] = "black"
+
+    dfs(entry)
+    return back_edges
+
+def is_reducible(cfg, entry):
+    """Return True if the CFG rooted at *entry* is reducible."""
+    if entry is None:
+        return True
+
+    reachable = set(get_path_lengths(cfg, entry).keys())
+    if not reachable:
+        return True
+
+    preds = {node: set() for node in reachable}
+    for node in reachable:
+        for succ in cfg.get(node, []):
+            if succ in reachable:
+                preds[succ].add(node)
+
+    dom = {node: set(reachable) for node in reachable}
+    dom[entry] = {entry}
+
+    changed = True
+    while changed:
+        changed = False
+        for node in reachable:
+            if node == entry:
+                continue
+
+            pred_nodes = preds[node]
+            if pred_nodes:
+                pred_doms = [dom[pred] for pred in pred_nodes]
+                new_dom = set(pred_doms[0])
+                for dom_set in pred_doms[1:]:
+                    new_dom &= dom_set
+            else:
+                new_dom = set()
+
+            new_dom.add(node)
+
+            if new_dom != dom[node]:
+                dom[node] = new_dom
+                changed = True
+
+    for tail, head in find_back_edges(cfg, entry):
+        if tail in reachable and head in reachable and head not in dom[tail]:
+            return False
+
+    return True
 
 def mycfg():
     """CLI entry point: read Bril JSON on stdin and print CFGs."""
