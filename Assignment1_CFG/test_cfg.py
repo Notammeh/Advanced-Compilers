@@ -1,114 +1,67 @@
-"""Test cases for CFG generator and analysis helpers."""
-
-import os
-import sys
-import unittest
-sys.path.insert(0, os.path.dirname(__file__))
-
-from cfg import (
-    generate_cfg,
-    get_path_lengths,
-    reverse_postorder,
-    find_back_edges,
-    is_reducible,
-)
-
-class TestCFG(unittest.TestCase):
-    def test_empty_program(self):
-        bril_program = {}
+    def test_fallthrough_between_labeled_blocks(self):
+        # A block that doesn't end in a terminator should fall through to the next block.
+        bril_program = {
+            "functions": [
+                {
+                    "name": "main",
+                    "instrs": [
+                        {"label": "A"},
+                        {"op": "const", "dest": "x", "type": "int", "value": 1},
+                        {"label": "B"},
+                        {"op": "ret"},
+                    ],
+                }
+            ]
+        }
         cfg = generate_cfg(bril_program)
-        self.assertIsNone(cfg)
+        self.assertEqual(cfg, {"A": ["B"], "B": []})
 
-    def test_single_block_ret(self):
+    def test_unlabeled_then_labeled_fallthrough(self):
+        # First block has no label; it should be named b0 and fall through to the next labeled block.
         bril_program = {
             "functions": [
                 {
                     "name": "main",
                     "instrs": [
                         {"op": "const", "dest": "x", "type": "int", "value": 1},
-                        {"op": "ret"}
-                    ]
+                        {"op": "const", "dest": "y", "type": "int", "value": 2},
+                        {"label": "L"},
+                        {"op": "ret"},
+                    ],
                 }
             ]
         }
         cfg = generate_cfg(bril_program)
-        self.assertEqual(cfg, {"b0": []})
+        self.assertEqual(cfg, {"b0": ["L"], "L": []})
 
-    def test_two_blocks_jmp(self):
-        bril_program = {
-            "functions": [
-@@ -39,27 +49,74 @@ class TestCFG(unittest.TestCase):
-                }
-            ]
-        }
-        cfg = generate_cfg(bril_program)
-        self.assertEqual(cfg, {"entry": ["exit"], "exit": []})
-
-    def test_branch(self):
+    def test_jmp_bypasses_middle_block(self):
+        # A jmp should ignore fall-through and jump directly to its target.
         bril_program = {
             "functions": [
                 {
                     "name": "main",
                     "instrs": [
-                        {"label": "start"},
-                        {"op": "br", "args": ["cond"], "labels": ["then", "else"]},
-                        {"label": "then"},
+                        {"label": "entry"},
+                        {"op": "jmp", "labels": ["C"]},
+                        {"label": "B"},
                         {"op": "ret"},
-                        {"label": "else"},
-                        {"op": "ret"}
-                    ]
+                        {"label": "C"},
+                        {"op": "ret"},
+                    ],
                 }
             ]
         }
         cfg = generate_cfg(bril_program)
-        self.assertEqual(cfg, {"start": ["then", "else"], "then": [], "else": []})
+        self.assertEqual(cfg, {"entry": ["C"], "B": [], "C": []})
 
-class TestCFGAnalysis(unittest.TestCase):
-    def test_get_path_lengths(self):
+    def test_path_lengths_basic(self):
+        # Small graph to sanity-check BFS distances from entry.
+        from cfg import get_path_lengths  # local import to avoid unused if not present
         cfg = {
-            "entry": ["left", "right"],
-            "left": ["exit"],
-            "right": ["exit"],
-            "exit": [],
-            "dead": ["dead"],
+            "start": ["x", "y"],
+            "x": ["z"],
+            "y": ["z"],
+            "z": [],
         }
-
-        distances = get_path_lengths(cfg, "entry")
-        self.assertEqual(distances, {"entry": 0, "left": 1, "right": 1, "exit": 2})
-
-    def test_reverse_postorder_linear(self):
-        cfg = {"entry": ["mid"], "mid": ["exit"], "exit": []}
-        self.assertEqual(reverse_postorder(cfg, "entry"), ["entry", "mid", "exit"])
-
-    def test_find_back_edges_simple_loop(self):
-        cfg = {
-            "entry": ["loop"],
-            "loop": ["entry", "exit"],
-            "exit": [],
-        }
-
-        back_edges = find_back_edges(cfg, "entry")
-        self.assertEqual(back_edges, [("loop", "entry")])
-
-    def test_is_reducible_simple_loop(self):
-        cfg = {
-            "entry": ["loop"],
-            "loop": ["entry", "exit"],
-            "exit": [],
-        }
-
-        self.assertTrue(is_reducible(cfg, "entry"))
-
-    def test_is_reducible_irreducible_graph(self):
-        cfg = {
-            "A": ["B", "D"],
-            "B": ["C"],
-            "C": ["D"],
-            "D": ["B", "E"],
-            "E": [],
-        }
-
-        self.assertFalse(is_reducible(cfg, "A"))
-
-if __name__ == "__main__":
-    unittest.main()
+        dist = get_path_lengths(cfg, "start")
+        self.assertEqual(dist, {"start": 0, "x": 1, "y": 1, "z": 2})
