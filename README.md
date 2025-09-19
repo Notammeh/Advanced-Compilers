@@ -11,6 +11,7 @@ cd Advanced-Compilers
 ## How cfg.py works
 - `cfg.py` reads a Bril program in JSON format from standard input.
 - It prints the control flow graph (CFG) for each function.
+- Internally, it splits the instructions into basic blocks—groups of instructions ending with labels or terminator instructions (like jumps or returns)—then maps out how these blocks connect, showing the flow of control between them.
 
 Example usage:
 ```bash
