@@ -1,0 +1,12 @@
+# Run Reaching Definitions on each test.
+[[test]]
+name = "rd-straight"
+cmd = "bril2json < tests/rd_straight.bril | python3 rd.py"
+
+[[test]]
+name = "rd-branch"
+cmd = "bril2json < tests/rd_branch.bril | python3 rd.py"
+
+[[test]]
+name = "rd-loop"
+cmd = "bril2json < tests/rd_loop.bril | python3 rd.py"
