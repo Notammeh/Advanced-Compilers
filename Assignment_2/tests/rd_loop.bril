@@ -1,0 +1,17 @@
+@main {
+  i: int = const 0;       # d1
+  s: int = const 0;       # d2
+
+.loop:
+  c: bool = lt i 3;
+  br c .body .done
+
+.body:
+  s: int = add s i;       # d3 (kills previous s)
+  i: int = add i 1;       # d4 (kills previous i)
+  jmp .loop
+
+.done:
+  print s;
+  print i;
+}
