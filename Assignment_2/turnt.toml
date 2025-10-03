@@ -1,11 +1,10 @@
-[[test]]
-name = "rd-straight"
-command = "bril2json < Assignment_2/tests/rd_straight.bril | python3 Assignment_2/Reaching_Definitions.py"
+cmd = "bril2json < {file} | python3 Assignment_2/Reaching_Definitions.py"
 
-[[test]]
-name = "rd-branch"
-command = "bril2json < Assignment_2/tests/rd_branch.bril | python3 Assignment_2/Reaching_Definitions.py"
+[[case]]
+file = "Assignment_2/tests/rd_straight.bril"
 
-[[test]]
-name = "rd-loop"
-command = "bril2json < Assignment_2/tests/rd_loop.bril | python3 Assignment_2/Reaching_Definitions.py"
+[[case]]
+file = "Assignment_2/tests/rd_branch.bril"
+
+[[case]] 
+file = "Assignment_2/tests/rd_loop.bril"
