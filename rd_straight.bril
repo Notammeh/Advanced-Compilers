@@ -1,0 +1,7 @@
+@main {
+  x: int = const 1;      # d1
+  y: int = const 0;      # d2
+  x: int = add x y;      # d3 (kills d1 for x)
+  print x;
+  print y;
+}
