@@ -1,12 +1,12 @@
 cat > turnt.toml << 'EOF'
-cmd = "bril2json < {file} | python3 Reaching_Definitions.py"
+cmd = "bril2json < {file} | python3 Assignment_2/Reaching_Definitions.py"
 
 [[case]]
-file = "tests/rd_straight.bril"
+file = "Assignment_2/tests/rd_straight.bril"
 
 [[case]]
-file = "tests/rd_branch.bril"
+file = "Assignment_2/tests/rd_branch.bril"
 
 [[case]] 
-file = "tests/rd_loop.bril"
+file = "Assignment_2/tests/rd_loop.bril"
 EOF
