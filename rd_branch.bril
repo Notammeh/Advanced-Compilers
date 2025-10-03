@@ -1,0 +1,16 @@
+@main {
+  x: int = const 1;        # d1
+  br x .then .else
+
+.then:
+  x: int = const 2;        # d2 (kills d1 on this path)
+  jmp .join
+
+.else:
+  y: int = const 3;        # d3
+  jmp .join
+
+.join:
+  print x;                 # reaches: {d1,d2} (d2 from then, d1 from else)
+  print y;                 # reaches: {d3} only from else; not defined on then
+}
