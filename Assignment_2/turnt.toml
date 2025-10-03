@@ -1,3 +1,4 @@
+cat > turnt.toml << 'EOF'
 cmd = "bril2json < {file} | python3 Reaching_Definitions.py"
 
 [[case]]
@@ -8,3 +9,4 @@ file = "tests/rd_branch.bril"
 
 [[case]] 
 file = "tests/rd_loop.bril"
+EOF
